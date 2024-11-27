@@ -1835,6 +1835,7 @@ dependencies = [
 name = "weechat-api"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "dotenv",
  "reqwest 0.12.9",
  "reqwest_mock",
