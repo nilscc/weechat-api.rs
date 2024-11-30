@@ -12,8 +12,8 @@ pub enum BufferRef {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
-struct Input {
+pub struct Input {
     #[serde(flatten)]
-    buffer_ref: BufferRef,
-    command: String,
+    pub buffer_ref: BufferRef,
+    pub command: String,
 }

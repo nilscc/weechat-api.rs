@@ -1,47 +1,17 @@
-use base64::{prelude::BASE64_STANDARD, Engine};
-use reqwest::Url;
-use serde_json::Value;
+use super::Credentials;
 
-#[tokio::test]
-async fn test() {
-    let _env = dotenv::dotenv().expect(".env file not found, see README.md");
+pub fn credentials_from_dotenv() -> Credentials {
+    // make sure .env file is available
+    let _ = dotenv::dotenv().expect(".env file not found, see README.md");
 
+    // get credentials
     let host = dotenv::var("WEECHAT_DOMAIN").expect("WEECHAT_DOMAIN missing from .env file");
     let port = dotenv::var("WEECHAT_PORT")
         .expect("WEECHAT_PORT missing from .env file")
         .parse::<i32>()
         .unwrap();
-    let passwd = dotenv::var("WEECHAT_PASSWORD").expect("WEECHAT_PASSWORD missing from .env file");
+    let password =
+        dotenv::var("WEECHAT_PASSWORD").expect("WEECHAT_PASSWORD missing from .env file");
 
-    let client = reqwest::Client::builder().https_only(true).build().unwrap();
-
-    let url = Url::parse(&format!("https://{host}:{port}")).unwrap();
-
-    // fetch result
-    let res = {
-        // set correct path for request
-        let mut requ = url.clone();
-        requ.set_path("/api/version".into());
-
-        // perform request
-        client
-            .get(requ)
-            .header(
-                "Authorization",
-                format!(
-                    "Basic {}",
-                    BASE64_STANDARD.encode(format!("plain:asd{passwd}"))
-                ),
-            )
-            .send()
-            .await
-            .unwrap()
-    };
-
-    let status = res.status();
-
-    println!("{res:?}");
-    println!("{:?}", res.json::<Value>().await.unwrap());
-
-    assert_eq!(200, status);
+    Credentials::new(host, port, password)
 }

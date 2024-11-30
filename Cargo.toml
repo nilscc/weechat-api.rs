@@ -4,14 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-trait = "0.1.83"
 base64 = "0.22.1"
+futures = "0.3.31"
 reqwest = { version = "0.12.9", features = ["json"] }
+reqwest-websocket = "0.4.3"
 serde = { version = "1.0.215", features = ["serde_derive"] }
+serde_json = "1.0.133"
 time = { version = "0.3.36", features = ["serde", "serde-well-known"] }
+tokio = { version = "1.41.1", features = ["sync"] }
+url = "2.5.4"
 
 [dev-dependencies]
 dotenv = "0.15.0"
 reqwest_mock = "0.7.0"
-serde_json = "1.0.133"
 time = { version = "0.3.36", features = ["parsing"] }
-tokio = { version = "1.41.1", features = ["rt", "macros"] }
+tokio = { version = "1.41.1", features = ["rt", "macros", "time"] }
