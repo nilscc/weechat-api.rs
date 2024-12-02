@@ -1,3 +1,4 @@
+#[cfg(not(target_family = "wasm"))]
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -58,6 +59,14 @@ pub struct ClientSettings {
 }
 
 impl Default for ClientSettings {
+    #[cfg(target_family = "wasm")]
+    fn default() -> Self {
+        ClientSettings {
+            with_reqwest_client_builder: Box::new(|b| b),
+        }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     fn default() -> Self {
         ClientSettings {
             with_reqwest_client_builder: Box::new(|b| {

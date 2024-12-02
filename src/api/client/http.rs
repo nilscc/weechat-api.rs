@@ -32,7 +32,7 @@ impl HttpClient {
         let url = Url::parse(
             format!(
                 "https://{}:{}/{}",
-                self.credentials.host, self.credentials.port, path
+                self.credentials.host, self.credentials.port, path.strip_prefix("/").unwrap_or(path)
             )
             .as_str(),
         )?;

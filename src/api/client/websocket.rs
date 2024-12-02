@@ -1,4 +1,7 @@
-use std::{string::FromUtf8Error, sync::Arc, time::Duration};
+use std::{string::FromUtf8Error, sync::Arc};
+
+#[cfg(not(target_family = "wasm"))]
+use std::time::Duration;
 
 use request::Handler;
 use reqwest_websocket::RequestBuilderExt;
@@ -54,6 +57,7 @@ impl From<FromUtf8Error> for WebsocketError {
 
 pub struct WebsocketClient {
     /// Connection timeout
+    #[cfg(not(target_family = "wasm"))]
     pub timeout: Duration,
 
     credentials: Credentials,
@@ -67,12 +71,23 @@ impl WebsocketClient {
         let client = (settings.with_reqwest_client_builder)(ClientImpl::builder())
             .build()
             .expect("reqwest client failed to construct");
-        WebsocketClient {
+
+        #[cfg(target_family = "wasm")]
+        let ws = WebsocketClient {
+            client,
+            credentials,
+            websocket: Arc::new(Mutex::new(None)),
+        };
+
+        #[cfg(not(target_family = "wasm"))]
+        let ws = WebsocketClient {
             client,
             credentials,
             websocket: Arc::new(Mutex::new(None)),
             timeout: Duration::from_secs(10),
-        }
+        };
+
+        ws
     }
 
     pub async fn connect(&mut self) -> Result<(), WebsocketError> {
@@ -85,11 +100,16 @@ impl WebsocketClient {
         )?;
 
         // get and assign websocket
-        let req = self
+        let builder = self
             .client
-            .get(url)
+            .get(url);
+
+        #[cfg(not(target_family = "wasm"))]
+        let builder = builder
             // configure timeout
-            .timeout(self.timeout)
+            .timeout(self.timeout);
+
+        let req = builder
             // headers
             .header("Authorization", self.credentials.authorization())
             .header("Origin", "*") // needs to be set!
