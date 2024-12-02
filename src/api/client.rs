@@ -32,6 +32,7 @@ impl From<url::ParseError> for Error {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Credentials {
     pub host: String,
     pub port: i32,

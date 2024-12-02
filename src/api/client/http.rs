@@ -7,6 +7,7 @@ use super::{ClientSettings, Credentials, Error};
 #[cfg(test)]
 mod test;
 
+#[derive(Debug, Clone)]
 pub struct HttpClient {
     /// The actual [reqwest] client implementation
     client: ClientImpl,
@@ -32,7 +33,9 @@ impl HttpClient {
         let url = Url::parse(
             format!(
                 "https://{}:{}/{}",
-                self.credentials.host, self.credentials.port, path.strip_prefix("/").unwrap_or(path)
+                self.credentials.host,
+                self.credentials.port,
+                path.strip_prefix("/").unwrap_or(path)
             )
             .as_str(),
         )?;

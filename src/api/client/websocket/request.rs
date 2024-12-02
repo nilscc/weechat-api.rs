@@ -1,9 +1,6 @@
 use std::collections::BTreeMap;
-use std::fmt::format;
 use std::fmt::Debug;
 use std::future::Future;
-use std::future::IntoFuture;
-use std::marker::PhantomData;
 
 use futures::TryStream;
 use futures::TryStreamExt;
@@ -45,6 +42,7 @@ struct Response {
     pub body: Option<Value>,
 }
 
+#[derive(Debug)]
 pub struct Handler {
     requests: BTreeMap<i64, oneshot::Sender<Option<Value>>>,
 }

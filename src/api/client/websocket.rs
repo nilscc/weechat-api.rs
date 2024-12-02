@@ -5,8 +5,6 @@ use std::time::Duration;
 
 use request::Handler;
 use reqwest_websocket::RequestBuilderExt;
-use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{json, to_value, Value};
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -55,6 +53,7 @@ impl From<FromUtf8Error> for WebsocketError {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct WebsocketClient {
     /// Connection timeout
     #[cfg(not(target_family = "wasm"))]
@@ -100,9 +99,7 @@ impl WebsocketClient {
         )?;
 
         // get and assign websocket
-        let builder = self
-            .client
-            .get(url);
+        let builder = self.client.get(url);
 
         #[cfg(not(target_family = "wasm"))]
         let builder = builder
@@ -146,6 +143,7 @@ impl WebsocketClient {
         Ok(())
     }
 
+    /*
     fn to_request<B>(id: i64, request: &str, body: Option<B>) -> Value
     where
         B: Serialize,
@@ -179,4 +177,5 @@ impl WebsocketClient {
         self.request::<(), T>(format!("GET {path}").as_str(), None)
             .await
     }
+    */
 }
