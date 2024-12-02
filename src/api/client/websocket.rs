@@ -58,7 +58,7 @@ pub struct WebsocketClient {
 
     credentials: Credentials,
     client: reqwest::Client,
-    websocket: Arc<Mutex<Option<Handler<Value>>>>,
+    websocket: Arc<Mutex<Option<Handler>>>,
 }
 
 impl WebsocketClient {

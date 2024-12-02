@@ -1,9 +1,16 @@
 use std::collections::BTreeMap;
+use std::fmt::format;
 use std::fmt::Debug;
+use std::future::Future;
+use std::future::IntoFuture;
+use std::marker::PhantomData;
 
 use futures::TryStream;
 use futures::TryStreamExt;
 use reqwest_websocket::Message;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde_json::from_value;
 use serde_json::Value;
 use tokio::sync::oneshot;
 
@@ -15,47 +22,52 @@ pub enum Error {
     UnexpectedMessage(Message),
     InvalidResponse(String),
     FailedToSendResponse(i64, String),
+    NoResponse,
 }
 
-pub struct Handler<T> {
-    requests: BTreeMap<i64, oneshot::Sender<Option<T>>>,
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        use Error::*;
+        match (self, other) {
+            (InvalidResponse(r1), InvalidResponse(r2)) => r1 == r2,
+            (FailedToSendResponse(i1, s1), FailedToSendResponse(i2, s2)) => i1 == i2 && s1 == s2,
+            (NoResponse, NoResponse) => true,
+            // messages cannot be compared
+            (UnexpectedMessage(_), UnexpectedMessage(_)) => false,
+            _ => false,
+        }
+    }
 }
 
-impl<T> Handler<T> {
+#[derive(Deserialize)]
+struct Response {
+    pub request_id: String,
+    pub body: Option<Value>,
+}
+
+pub struct Handler {
+    requests: BTreeMap<i64, oneshot::Sender<Option<Value>>>,
+}
+
+impl Handler {
     pub fn new() -> Self {
         Handler {
             requests: BTreeMap::new(),
         }
     }
 
-    fn handle_text_response(&mut self, response: String) -> Result<(), Error>
-    where
-        T: From<Value> + Debug,
-    {
+    fn handle_text_response(&mut self, response: String) -> Result<(), Error> {
         use Error::*;
 
         // parse json object
-        let json: Value = serde_json::from_str(&response).or(Err(InvalidResponse(format!(
-            "Failed to convert to value: {response:?}"
-        ))))?;
-
-        // find request ID in object
-        let obj = json
-            .as_object()
-            .ok_or(Error::InvalidResponse(format!("Not an object: {json:?}")))?;
-        let value = obj.get("request_id").ok_or(InvalidResponse(format!(
-            "No key 'request_id' in object: {obj:?}"
+        let response: Response = serde_json::from_str(&response).or(Err(InvalidResponse(
+            format!("Failed to convert to Response: {response:?}"),
         )))?;
 
-        // parse as i64
-        let request_id = {
-            match value {
-                Value::String(str) => str.parse::<i64>().or(Err(InvalidResponse(format!(
-                    "Failed to parse request_id: {str:?}"
-                )))),
-                _ => Err(InvalidResponse(format!("Unexpected value: {value:?}"))),
-            }
-        }?;
+        // parse request ID as i64
+        let request_id: i64 = response.request_id.parse().or(Err(InvalidResponse(
+            "Expected i64 parsable request_id value.".into(),
+        )))?;
 
         // find sender for request ID
         let sender = self
@@ -67,30 +79,37 @@ impl<T> Handler<T> {
             ))?;
 
         // convert body into object of type T and send through oneshot channel
-        sender
-            .send(obj.get("body").map(|value| value.clone().into()))
-            .or(Err(FailedToSendResponse(
-                request_id,
-                "Something went wrong!".into(),
-            )))?;
-
-        // done
-        Ok(())
+        sender.send(response.body).or(Err(FailedToSendResponse(
+            request_id,
+            "Something went wrong!".into(),
+        )))
     }
 
-    pub fn request(&mut self, id: i64) -> oneshot::Receiver<Option<T>> {
+    pub fn request<T>(&mut self, id: i64) -> impl Future<Output = Result<Option<T>, Error>>
+    where
+        T: DeserializeOwned,
+    {
         // create channel
-        let (s, r) = oneshot::channel::<Option<T>>();
+        let (s, r) = oneshot::channel::<Option<Value>>();
 
         self.requests.insert(id, s);
 
         // return receiver
-        r
+        async {
+            match r.await {
+                Ok(Some(value)) => from_value(value).map_err(|e| {
+                    Error::InvalidResponse(format!("Failed to deserialize reponse body: {e:?}"))
+                }),
+                Ok(None) => Ok(None),
+                other => Err(Error::InvalidResponse(format!(
+                    "Receiver failed with: {other:?}"
+                ))),
+            }
+        }
     }
 
     pub async fn handle<S>(&mut self, mut stream: S) -> Result<(), Error>
     where
-        T: From<Value> + Debug,
         S: TryStream<Ok = Message> + TryStreamExt + Unpin,
         Error: From<<S as TryStream>::Error>,
     {
