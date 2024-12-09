@@ -35,16 +35,16 @@ impl From<url::ParseError> for Error {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Credentials {
     pub host: String,
-    pub port: i32,
+    pub port: u32,
     password: String,
 }
 
 impl Credentials {
-    pub fn new(host: String, port: i32, password: String) -> Self {
+    pub fn new(host: String, port: u32, password: String) -> Self {
         Credentials {
-            host: host,
-            port: port,
-            password: password,
+            host,
+            port,
+            password,
         }
     }
 

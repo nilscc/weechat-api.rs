@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(test)]
 mod test;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize, Clone)]
 pub struct Version {
     weechat_version: String,
     weechat_version_git: String,

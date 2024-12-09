@@ -8,7 +8,7 @@ pub fn credentials_from_dotenv() -> Credentials {
     let host = dotenv::var("WEECHAT_DOMAIN").expect("WEECHAT_DOMAIN missing from .env file");
     let port = dotenv::var("WEECHAT_PORT")
         .expect("WEECHAT_PORT missing from .env file")
-        .parse::<i32>()
+        .parse::<u32>()
         .unwrap();
     let password =
         dotenv::var("WEECHAT_PASSWORD").expect("WEECHAT_PASSWORD missing from .env file");
